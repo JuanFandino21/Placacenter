@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>{% if form.instance.pk %}Editar proveedor{% else %}Nuevo proveedor{% endif %}</h3>
+
+<form method="post" class="card card-body">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <div class="mt-2">
+    <a class="btn btn-light" href="/proveedores/">Cancelar</a>
+    <button class="btn btn-primary" type="submit">Guardar</button>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3>Categorías</h3>
+  <a class="btn btn-primary" href="/categorias/nueva/">Nueva</a>
+</div>
+
+<table class="table table-striped">
+  <thead>
+    <tr><th>#</th><th>Nombre</th><th></th></tr>
+  </thead>
+  <tbody>
+  {% for c in object_list %}
+    <tr>
+      <td>{{ c.id }}</td>
+      <td>{{ c.nombre }}</td>
+      <td>
+        <a class="btn btn-sm btn-outline-secondary" href="/categorias/{{ c.id }}/editar/">Editar</a>
+      </td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="3">Sin datos</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
