@@ -13,12 +13,12 @@ class ProveedorAdmin(admin.ModelAdmin):
 
 @admin.register(Producto)
 class ProductoAdmin(admin.ModelAdmin):
-    list_display = ("id", "nombre", "codigo_producto", "categoria", "precio_venta", "stock", "stock_minimo", "activo")
+    list_display = ("id", "nombre", "sku", "categoria", "precio_venta", "stock", "stock_minimo", "activo")
     list_filter = ("categoria", "activo")
-    search_fields = ("nombre", "codigo_producto")
+    search_fields = ("nombre", "sku")
 
 @admin.register(MovimientoInventario)
 class MovimientoInventarioAdmin(admin.ModelAdmin):
     list_display = ("id", "producto", "tipo", "cantidad", "costo_unitario", "fecha")
     list_filter = ("tipo", "producto")
-    search_fields = ("producto__nombre", "producto__codigo_producto")
+    search_fields = ("producto__nombre", "sku")
