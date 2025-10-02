@@ -11,8 +11,8 @@ from .serializers import CategoriaSerializer, ProveedorSerializer, ProductoSeria
 from .forms import CategoriaForm, ProveedorForm, ProductoForm, EntradaStockForm
 
 
-# ======= HTML =======
-
+# para html
+#lista de la categoria en html
 class CategoriaListView(ListView):
     model = Categoria
     template_name = 'categorias_list.html'
@@ -109,7 +109,7 @@ def entrada_stock_view(request, producto_id):
                     costo_unitario=costo_unitario,
                     motivo=motivo,
                 )
-                # Actualizar stock y costo promedio (promedio ponderado simple)
+                # Actualizar stock y costo promedio 
                 total_actual = Decimal(producto.costo_promedio) * producto.stock
                 total_nuevo = Decimal(costo_unitario) * Decimal(cantidad)
                 nuevo_stock = producto.stock + cantidad
@@ -128,7 +128,7 @@ def entrada_stock_view(request, producto_id):
     return render(request, 'entrada_stock.html', {'form': form, 'producto': producto})
 
 
-# ======= API (DRF) =======
+# API
 
 class CategoriaViewSet(viewsets.ModelViewSet):
     queryset = Categoria.objects.all()

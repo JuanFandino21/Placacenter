@@ -6,7 +6,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Dependencias del sistema (certificados, etc.)
+# dependencias
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates && rm -rf /var/lib/apt/lists/*
 
@@ -17,10 +17,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Código del proyecto
 COPY . /app/
 
-# Construir estáticos con WhiteNoise
+# estaticos con withenoise
 RUN python manage.py collectstatic --noinput
 
-# Entrypoint: migrar DB y arrancar gunicorn
+# migrar a db y arrancar con entrypoint
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 

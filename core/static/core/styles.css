@@ -1,18 +1,13 @@
-/* =========================
-   Placacenter – UI Theme
-   Sidebar vertical + Dark UI + Poppins
-   ========================= */
-
-/* Paleta y tipografía global */
+/* paleta de colores y la tipografia*/
 :root{
-  --pc-bg: #0f172a;            /* slate-900 */
-  --pc-bg-acc: #111827;        /* gray-900 */
-  --pc-fg: #e5e7eb;            /* gray-200 */
-  --pc-fg-dim: #9ca3af;        /* gray-400 */
-  --pc-accent: #22c55e;        /* green-500 */
-  --pc-accent-2: #60a5fa;      /* blue-400 */
-  --pc-border: #1f2937;        /* gray-800 */
-  --pc-card: #0b1220;          /* dark card */
+  --pc-bg: #0f172a;            
+  --pc-bg-acc: #111827;        
+  --pc-fg: #e5e7eb;            
+  --pc-fg-dim: #9ca3af;        
+  --pc-accent: #22c55e;        
+  --pc-accent-2: #60a5fa;      
+  --pc-border: #1f2937;       
+  --pc-card: #0b1220;        
 }
 
 html, body{
@@ -22,7 +17,7 @@ html, body{
   color: var(--pc-fg);
 }
 
-/* =============== Layout =============== */
+/*  Layout */
 .pc-sidebar{
   position: fixed;
   z-index: 1000;
@@ -45,26 +40,11 @@ html, body{
   transition: margin-left .2s ease;
 }
 
-/* Colapso (desktop) */
+/* Escritorio */
 .pc-sidebar.collapsed{ width: 84px; }
 .pc-content.expanded{ margin-left: 84px; }
 
-/* Móvil */
-@media (max-width: 767.98px){
-  .pc-sidebar{ transform: translateX(-100%); }
-  .pc-sidebar.open{ transform: translateX(0); }
-  .pc-content{ margin-left: 0; }
-  .pc-topbar{
-    position: sticky; top: 0; z-index: 500;
-    background: rgba(11,15,26,.75);
-    backdrop-filter: blur(6px);
-    border-bottom: 1px solid var(--pc-border);
-    padding: .6rem .8rem;
-    display: flex; align-items: center; gap: .6rem;
-  }
-}
-
-/* =============== Sidebar =============== */
+/*  Sidebar */
 .pc-brand{
   display: flex; align-items: center; gap: .75rem;
   padding: 1rem 1.25rem;
@@ -118,7 +98,7 @@ html, body{
 }
 .pc-collapse:hover{ color:#fff; border-color: rgba(255,255,255,.25); }
 
-/* =============== Tablas & Contenido =============== */
+/*  tablas y contenido */
 .container-fluid{ color: var(--pc-fg); }
 
 .table{
@@ -138,7 +118,7 @@ html, body{
   --bs-table-striped-bg: rgba(250, 204, 21, .16);
 }
 
-/* =============== Formularios =============== */
+/* Formularios */
 .form-control, .form-select{
   background-color: #0f1424;
   color: var(--pc-fg);
@@ -148,7 +128,7 @@ html, body{
   border-color: #3b82f6; box-shadow: 0 0 0 .2rem rgba(59,130,246,.2);
 }
 
-/* Tarjeta oscura para formularios */
+/* fondo oscuro para formularios */
 .pc-card{
   background: #0f1424;
   border: 1px solid #1d2a44;
@@ -173,7 +153,7 @@ html, body{
   box-shadow: 0 0 0 .2rem rgba(59,130,246,.2);
 }
 
-/* =============== Botones =============== */
+/* Botones */
 .btn-primary{
   background: linear-gradient(135deg, #60a5fa, #22c55e);
   border: none;
@@ -184,7 +164,7 @@ html, body{
 }
 .btn-outline-success:hover{ background: rgba(52,211,153,.12); }
 
-/* =============== Títulos & Links =============== */
+/* Títulos y links  */
 h1, h2, h3, h4{
   letter-spacing: .2px;
   font-weight: 600;
@@ -192,9 +172,7 @@ h1, h2, h3, h4{
 a{ color: #93c5fd; text-decoration: none; }
 a:hover{ color: #bfdbfe; text-decoration: underline; }
 
-/* =========================================================
-   HARDENING: evita que algún form quede blanco por clases viejas
-   ========================================================= */
+
 .card,
 .card-body,
 form.card,
@@ -230,19 +208,19 @@ input:focus, textarea:focus, select:focus,
 ::placeholder { color: #9ca3af; opacity: 1; }
 ::-ms-input-placeholder { color: #9ca3af; }
 
-/* Select options (donde lo soporta) */
+/* seleccionar opciones */
 select option{
   background-color: #0b1220;
   color: #e5e7eb;
 }
 
-/* Disabled / readonly */
+
 .form-control:disabled, .form-control[readonly]{
   background-color: #0e1526 !important;
   color: #9ca3af !important;
 }
 
-/* Checkbox visible */
+
 .form-check-input{
   background-color: #0b1220;
   border: 1px solid #1d2a44;
@@ -252,7 +230,7 @@ select option{
   border-color: #22c55e;
 }
 
-/* Espaciado base en formularios */
+/* espaciado en formularios */
 .pc-card, form.card, form.card-body{
   padding: 16px;
 }
