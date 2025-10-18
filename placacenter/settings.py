@@ -1,9 +1,9 @@
-
 from pathlib import Path
 import os
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+load_dotenv(BASE_DIR / ".env")  # <- carga .env
 # seguridad
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-secret-key-placacenter")
 DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() == "true"
@@ -107,3 +107,15 @@ REST_FRAMEWORK = {
         "rest_framework.renderers.BrowsableAPIRenderer",
     ]
 }
+# --- Auth / Login ---
+LOGIN_URL = "/signin/"
+LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "/"
+
+
+# --- Auth0 (desde .env) ---
+AUTH0_DOMAIN = os.getenv("AUTH0_DOMAIN", "")
+AUTH0_CLIENT_ID = os.getenv("AUTH0_CLIENT_ID", "")
+AUTH0_CLIENT_SECRET = os.getenv("AUTH0_CLIENT_SECRET", "")
+AUTH0_CALLBACK_URL = os.getenv("AUTH0_CALLBACK_URL", "")
+AUTH0_LOGOUT_REDIRECT = os.getenv("AUTH0_LOGOUT_REDIRECT", LOGOUT_REDIRECT_URL)

@@ -1,24 +1,101 @@
 from decimal import Decimal
+from urllib.parse import quote
+from django.views.decorators.http import require_GET
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.contrib.auth import login as dj_login, logout as dj_logout
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
 from django.db.models import Q
+from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.generic import ListView, CreateView, UpdateView
+
 from rest_framework import viewsets, filters
+from authlib.integrations.django_client import OAuth
 
 from .models import Categoria, Proveedor, Producto, MovimientoInventario
 from .serializers import CategoriaSerializer, ProveedorSerializer, ProductoSerializer
 from .forms import CategoriaForm, ProveedorForm, ProductoForm, EntradaStockForm
 
+@require_GET
+def signin_view(request):
+    # Solo renderiza tu landing de login. El botón apunta a /login?provider=google
+    return render(request, "login.html")
 
-# para html
-#lista de la categoria en html
-class CategoriaListView(ListView):
+# =============================
+#  Auth0 (OAuth / OIDC)
+# =============================
+oauth = OAuth()
+# Evita doble registro bajo autoreloader
+if not getattr(oauth, "auth0", None):
+    oauth.register(
+        name='auth0',
+        server_metadata_url=f'https://{settings.AUTH0_DOMAIN}/.well-known/openid-configuration',
+        client_id=settings.AUTH0_CLIENT_ID,
+        client_secret=settings.AUTH0_CLIENT_SECRET,
+        client_kwargs={'scope': 'openid profile email'},
+    )
+
+
+def auth_login(request):
+    # Si viene ?provider=google, forzamos la conexión 'google-oauth2'
+    provider = request.GET.get("provider")
+    if provider == "google":
+        return oauth.auth0.authorize_redirect(
+            request,
+            redirect_uri=settings.AUTH0_CALLBACK_URL,
+            connection="google-oauth2"
+        )
+    # Universal Login (lista de proveedores)
+    return oauth.auth0.authorize_redirect(request, redirect_uri=settings.AUTH0_CALLBACK_URL)
+
+
+def auth_callback(request):
+    try:
+        token = oauth.auth0.authorize_access_token(request)
+    except Exception as e:
+        return HttpResponseBadRequest(f"Auth error: {e}")
+
+    userinfo = token.get('userinfo') or {}
+    email = userinfo.get('email')
+    if not email:
+        return HttpResponseBadRequest("No se obtuvo email del proveedor.")
+
+    name = userinfo.get('name') or userinfo.get('nickname') or email
+
+    User = get_user_model()
+    user, _ = User.objects.get_or_create(
+        username=email,
+        defaults={'email': email, 'first_name': name[:30]},
+    )
+    dj_login(request, user)
+    return redirect(settings.LOGIN_REDIRECT_URL)
+
+
+def auth_logout(request):
+    dj_logout(request)
+    return redirect(
+        "https://{domain}/v2/logout?client_id={cid}&returnTo={ret}".format(
+            domain=settings.AUTH0_DOMAIN,
+            cid=settings.AUTH0_CLIENT_ID,
+            ret=quote(settings.AUTH0_LOGOUT_REDIRECT, safe='')
+        )
+    )
+
+
+# =============================
+#  HTML (protegido con login)
+# =============================
+
+# lista de la categoria en html
+class CategoriaListView(LoginRequiredMixin, ListView):
     model = Categoria
     template_name = 'categorias_list.html'
 
 
-class CategoriaCreateView(CreateView):
+class CategoriaCreateView(LoginRequiredMixin, CreateView):
     model = Categoria
     form_class = CategoriaForm
     template_name = 'categoria_form.html'
@@ -27,7 +104,7 @@ class CategoriaCreateView(CreateView):
         return reverse('categorias_list')
 
 
-class CategoriaUpdateView(UpdateView):
+class CategoriaUpdateView(LoginRequiredMixin, UpdateView):
     model = Categoria
     form_class = CategoriaForm
     template_name = 'categoria_form.html'
@@ -36,12 +113,12 @@ class CategoriaUpdateView(UpdateView):
         return reverse('categorias_list')
 
 
-class ProveedorListView(ListView):
+class ProveedorListView(LoginRequiredMixin, ListView):
     model = Proveedor
     template_name = 'proveedores_list.html'
 
 
-class ProveedorCreateView(CreateView):
+class ProveedorCreateView(LoginRequiredMixin, CreateView):
     model = Proveedor
     form_class = ProveedorForm
     template_name = 'proveedor_form.html'
@@ -50,7 +127,7 @@ class ProveedorCreateView(CreateView):
         return reverse('proveedores_list')
 
 
-class ProveedorUpdateView(UpdateView):
+class ProveedorUpdateView(LoginRequiredMixin, UpdateView):
     model = Proveedor
     form_class = ProveedorForm
     template_name = 'proveedor_form.html'
@@ -59,7 +136,7 @@ class ProveedorUpdateView(UpdateView):
         return reverse('proveedores_list')
 
 
-class ProductoListView(ListView):
+class ProductoListView(LoginRequiredMixin, ListView):
     model = Producto
     template_name = 'productos_list.html'
 
@@ -74,7 +151,7 @@ class ProductoListView(ListView):
         return qs
 
 
-class ProductoCreateView(CreateView):
+class ProductoCreateView(LoginRequiredMixin, CreateView):
     model = Producto
     form_class = ProductoForm
     template_name = 'producto_form.html'
@@ -83,7 +160,7 @@ class ProductoCreateView(CreateView):
         return reverse('productos_list')
 
 
-class ProductoUpdateView(UpdateView):
+class ProductoUpdateView(LoginRequiredMixin, UpdateView):
     model = Producto
     form_class = ProductoForm
     template_name = 'producto_form.html'
@@ -109,7 +186,7 @@ def entrada_stock_view(request, producto_id):
                     costo_unitario=costo_unitario,
                     motivo=motivo,
                 )
-                # Actualizar stock y costo promedio 
+                # Actualizar stock y costo promedio
                 total_actual = Decimal(producto.costo_promedio) * producto.stock
                 total_nuevo = Decimal(costo_unitario) * Decimal(cantidad)
                 nuevo_stock = producto.stock + cantidad
@@ -128,7 +205,9 @@ def entrada_stock_view(request, producto_id):
     return render(request, 'entrada_stock.html', {'form': form, 'producto': producto})
 
 
-# API
+# =============================
+#  API (sin cambios de permisos por ahora)
+# =============================
 
 class CategoriaViewSet(viewsets.ModelViewSet):
     queryset = Categoria.objects.all()

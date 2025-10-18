@@ -1,6 +1,7 @@
 from django.urls import path
 from django.shortcuts import redirect
 from .views import (
+    signin_view,
     CategoriaListView, CategoriaCreateView, CategoriaUpdateView,
     ProveedorListView, ProveedorCreateView, ProveedorUpdateView,
     ProductoListView, ProductoCreateView, ProductoUpdateView,
@@ -8,7 +9,8 @@ from .views import (
 )
 
 urlpatterns = [
-    path('', lambda r: redirect('productos_list'), name='home'),
+    path('', lambda r: redirect('productos_list') if r.user.is_authenticated else redirect('signin'), name='home'),
+    path('signin/', signin_view, name='signin'),
 
     path('categorias/', CategoriaListView.as_view(), name='categorias_list'),
     path('categorias/nueva/', CategoriaCreateView.as_view(), name='categoria_create'),
