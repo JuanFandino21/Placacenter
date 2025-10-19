@@ -1,5 +1,6 @@
 from pathlib import Path
 import os
+import sys
 from dotenv import load_dotenv
 from urllib.parse import urlparse, parse_qsl
 
@@ -72,7 +73,7 @@ TEMPLATES = [
 WSGI_APPLICATION = "placacenter.wsgi.application"
 ASGI_APPLICATION = "placacenter.asgi.application"
 
-# --- Base de Datos: PostgreSQL (Railway). SIN SQLite ---
+# --- Base de Datos: PostgreSQL (Railway) ---
 def parse_database_url(url: str):
     r = urlparse(url)
     scheme = (r.scheme or "").lower()
@@ -90,12 +91,12 @@ def parse_database_url(url: str):
         "PASSWORD": r.password,
         "HOST": r.hostname,
         "PORT": r.port or default_port,
-        "CONN_MAX_AGE": int(os.getenv("DB_CONN_MAX_AGE", "60")),  # pooling simple
+        "CONN_MAX_AGE": int(os.getenv("DB_CONN_MAX_AGE", "60")),
         "CONN_HEALTH_CHECKS": True,
         "ATOMIC_REQUESTS": False,
         "AUTOCOMMIT": True,
         "OPTIONS": {
-            # Tiempo de espera para conectar; evita cuelgues cuando el proxy está dormido
+            # evita cuelgues cuando el proxy está dormido
             "connect_timeout": int(os.getenv("DB_CONNECT_TIMEOUT", "10")),
         },
     }
@@ -142,18 +143,25 @@ def build_cfg_from_env():
         },
     }
 
+# Permitir que collectstatic no requiera DB durante el build
+RUNNING_COLLECTSTATIC = "collectstatic" in sys.argv
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 if DATABASE_URL:
     DB_DEFAULT = parse_database_url(DATABASE_URL)
 else:
-    # Si no hay DATABASE_URL, intenta con PG* (Railway variables separadas)
     cfg = build_cfg_from_env()
     if not cfg:
-        raise RuntimeError(
-            "Config DB inválida: define DATABASE_URL o las variables PGHOST, PGPORT, PGUSER, PGPASSWORD y PGNAME."
-        )
-    DB_DEFAULT = cfg
+        if RUNNING_COLLECTSTATIC:
+            # Backend dummy solo para el paso de estáticos en el build
+            DB_DEFAULT = {"ENGINE": "django.db.backends.dummy"}
+        else:
+            raise RuntimeError(
+                "Config DB inválida: define DATABASE_URL o las variables "
+                "PGHOST, PGPORT, PGUSER, PGPASSWORD y PGDATABASE."
+            )
+    else:
+        DB_DEFAULT = cfg
 
 DATABASES = {"default": DB_DEFAULT}
 
