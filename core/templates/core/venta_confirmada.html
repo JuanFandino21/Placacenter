@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}Venta confirmada{% endblock %}
+{% block content %}
+<div class="p-6 rounded-2xl" style="background:var(--pc-card);border:1px solid var(--pc-border)">
+  <h1 class="text-2xl mb-4" style="color:var(--pc-fg)">Venta confirmada</h1>
+  <table class="w-full text-sm">
+    <thead>
+      <tr style="color:var(--pc-fg-dim)">
+        <th class="text-left">Producto</th><th>Cant</th><th>Precio</th><th>Subtotal</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in resumen %}
+      <tr style="color:var(--pc-fg)">
+        <td>{{ r.producto }}</td>
+        <td class="text-center">{{ r.qty }}</td>
+        <td class="text-right">$ {{ r.precio|floatformat:0 }}</td>
+        <td class="text-right">$ {{ r.subtotal|floatformat:0 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr style="color:var(--pc-fg)">
+        <td colspan="3" class="text-right font-semibold">Total</td>
+        <td class="text-right font-semibold">$ {{ total|floatformat:0 }}</td>
+      </tr>
+    </tfoot>
+  </table>
+  <div class="mt-4">
+    <a href="{% url 'ventas' %}" class="px-3 py-2 rounded-xl" style="background:var(--pc-accent);color:#0b1220">Nueva venta</a>
+  </div>
+</div>
+{% endblock %}

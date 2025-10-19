@@ -1,0 +1,45 @@
+<div class="pc-cart">
+  <h3>Carrito</h3>
+
+  {% if items %}
+    <ul style="display:flex; flex-direction:column; gap:8px; margin:0; padding:0; list-style:none;">
+      {% for it in items %}
+      <li class="pc-card" style="display:flex; align-items:center; gap:10px; padding:10px;">
+        <div style="flex:1 1 auto;">
+          <div style="color:var(--pc-fg); font-weight:700;">{{ it.nombre }}</div>
+          <div style="color:var(--pc-fg-dim); font-size:.85rem;">{{ it.sku }}</div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button hx-get="{% url 'cart_dec' it.id %}" hx-target="#cart-panel" hx-swap="outerHTML"
+                  style="background:transparent; color:var(--pc-fg); border:1px solid var(--pc-border);
+                         padding:.2rem .5rem; border-radius:8px;">−</button>
+          <span style="min-width:22px; text-align:center; color:var(--pc-fg);">{{ it.qty }}</span>
+          <button hx-get="{% url 'cart_add' it.id %}" hx-target="#cart-panel" hx-swap="outerHTML"
+                  style="background:transparent; color:var(--pc-fg); border:1px solid var(--pc-border);
+                         padding:.2rem .5rem; border-radius:8px;">＋</button>
+        </div>
+
+        <div style="width:90px; text-align:right; color:var(--pc-fg);">$ {{ it.subtotal|floatformat:0 }}</div>
+
+        <button hx-get="{% url 'cart_remove' it.id %}" hx-target="#cart-panel" hx-swap="outerHTML"
+                class="pc-btn" style="background:#ff6b6b; color:white;">Quitar</button>
+      </li>
+      {% endfor %}
+    </ul>
+
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; color:var(--pc-fg); font-size:1.05rem;">
+      <span>Total</span>
+      <strong>$ {{ total|floatformat:0 }}</strong>
+    </div>
+
+    <div style="display:flex; gap:8px; margin-top:12px;">
+      <button hx-get="{% url 'cart_empty' %}" hx-target="#cart-panel" hx-swap="outerHTML"
+              class="pc-btn" style="background:#404756; color:white;">Vaciar</button>
+      <a href="{% url 'ventas_confirmar' %}" class="pc-btn">Confirmar compra</a>
+    </div>
+
+  {% else %}
+    <p style="color:var(--pc-fg-dim)">Tu carrito está vacío.</p>
+  {% endif %}
+</div>

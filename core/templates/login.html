@@ -12,46 +12,41 @@
     html, body { height: 100%; }
     body{
       margin:0; font-family:"Poppins",system-ui;
-      /* 🔥 Fondo ocupa TODO detrás de la tarjeta: */
       background:
-        linear-gradient(180deg, rgba(0,0,0,.30), rgba(0,0,0,.55)), /* oscurecer */
+        linear-gradient(180deg, rgba(0,0,0,.30), rgba(0,0,0,.55)),
         url("{% static 'core/login-bg.jpg' %}") center center / cover no-repeat fixed;
     }
-
-    /* Contenedor pantalla completa */
-    .pc-login-wrap{
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: flex-end; /* tarjeta a la derecha como tu mockup */
-      padding: 24px;
-    }
-
-    /* Tarjeta */
+    .pc-login-wrap{ min-height:100vh; display:flex; align-items:center; justify-content:flex-end; padding:24px; }
     .pc-card{
-      width: 100%; max-width: 520px;
-      background: #dff9ff;   /* tono celeste claro estilo tu mockup */
-      border-radius: 16px; padding: 24px 22px;
-      box-shadow: 0 18px 40px rgba(0,0,0,.45);
-      border: 1px solid rgba(255,255,255,.2);
+      width:100%; max-width:560px; background:#dff9ff; border-radius:16px; padding:24px 22px;
+      box-shadow:0 18px 40px rgba(0,0,0,.45); border:1px solid rgba(255,255,255,.2);
     }
-
-    .pc-brand-line{ width:6px; height:28px; background: var(--pc-accent); border-radius:8px; }
+    .pc-brand-line{ width:6px; height:28px; background:var(--pc-accent,#22d3ee); border-radius:8px; }
     .pc-title{ color:#083344; font-weight:700; font-size:1.5rem; }
     .pc-sub{ text-transform:uppercase; letter-spacing:.1em; color:#0f766e; font-weight:600; }
-    .pc-label{ color:#065f46; font-weight:500; font-size:.9rem; margin-bottom:4px; }
+    /* Títulos de campos SIEMPRE oscuros y visibles */
+    .pc-label{ color:#0b1220 !important; font-weight:700; font-size:.95rem; margin-bottom:4px; }
+
     .pc-input{
-      background:#0b1220; color:#e5e7eb;
-      border:1px solid #1d2a44; border-radius:10px;
-      height:44px; padding:10px 14px;
+      background:#0b1220; color:#e5e7eb; border:1px solid #1d2a44; border-radius:10px;
+      height:44px; padding:10px 14px; width:100%;
     }
-    .pc-input:focus{ border-color:#60a5fa; box-shadow: 0 0 0 .2rem rgba(96,165,250,.25); }
-    .pc-btn-primary{
-      background:#fbbf24; border:none; color:#1f2937; font-weight:700;
-      height:46px; border-radius:10px;
-    }
-    .pc-btn-primary:hover{ filter:brightness(1.05); }
-    .pc-note{ color:#0f766e; font-size:.9rem; margin-top:-6px; }
+    .pc-input::placeholder{ color:#9ca3af; }
+    .pc-input:focus{ border-color:#60a5fa; box-shadow:0 0 0 .2rem rgba(96,165,250,.25); }
+
+    .pc-btn-primary{ background:#fbbf24; border:none; color:#1f2937; font-weight:700; height:46px; border-radius:10px; }
+    .btn-google{ background:#fff; border:1px solid #e5e7eb; color:#111827; font-weight:600; height:46px; border-radius:10px; }
+    .btn-google:hover{ background:#f9fafb; }
+    @media (max-width: 992px){ .pc-login-wrap{ justify-content:center; } }
+
+    /* Mensajes legibles (texto oscuro) */
+    .pc-card .alert{ color:#0b1220 !important; border-width:1px; font-weight:600; }
+    .pc-card .alert-danger{ background:#FEE2E2; border-color:#ef4444; }
+    .pc-card .alert-success{ background:#DCFCE7; border-color:#22c55e; }
+    .pc-card .alert-info{ background:#DBEAFE; border-color:#60a5fa; }
+
+    /* Selección visible */
+    ::selection{ background:#fde68a; color:#0b1220; }
   </style>
 </head>
 <body>
@@ -62,37 +57,47 @@
         <h1 class="pc-title m-0">Placacenter</h1>
       </div>
       <div class="pc-sub mb-2">Iniciar sesión</div>
-      <p class="pc-note">Introduce tus credenciales para acceder a tu cuenta.</p>
+      <p class="text-muted mb-3">Introduce tus credenciales para acceder a tu cuenta.</p>
 
-      <!-- ✅ editable (ya no están disabled) -->
-      <form id="fakeLogin" class="mt-2">
+      {% if messages %}
+        {% for m in messages %}
+          <div class="alert alert-{{ m.tags }} py-2 mb-3">{{ m }}</div>
+        {% endfor %}
+      {% endif %}
+
+      <form method="post" action="{% url 'login_local' %}" autocomplete="off" novalidate>
+        {% csrf_token %}
         <div class="mb-2">
-          <label class="pc-label">User</label>
-          <input type="text" class="pc-input w-100" placeholder="Introduce your username">
+          <label class="pc-label" for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
+          {{ form.username }}
         </div>
         <div class="mb-3">
-          <label class="pc-label">Password</label>
-          <input type="password" class="pc-input w-100" placeholder="Introduce your password">
+          <label class="pc-label" for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
+          {{ form.password }}
         </div>
 
-        <!-- 🔗 botón que dispara Auth0 con Google -->
-        <div class="d-grid">
+        <div class="d-grid mb-2">
           <button type="submit" class="btn pc-btn-primary">INICIAR SESIÓN</button>
         </div>
-        <div class="d-grid mt-2">
-          <!-- Alternativa: Universal Login (lista proveedores) -->
-          <a class="btn btn-light" href="/login/">Entrar con otras opciones</a>
+
+        <div class="d-grid">
+          <a class="btn btn-google d-flex align-items-center justify-content-center gap-2" href="/login?provider=google">
+            <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+              <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.6 29.2 36 24 36c-6.6 0-12-5.4-12-12S17.4 12 24 12c3 0 5.7 1.1 7.7 3l5.7-5.7C34 5.5 29.3 4 24 4 16.1 4 9.1 8.6 6.3 14.7z"/>
+              <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.4 16 18.9 12 24 12c3 0 5.7 1.1 7.7 3l5.7-5.7C34 5.5 29.3 4 24 4 16.1 4 9.1 8.6 6.3 14.7z"/>
+              <path fill="#4CAF50" d="M24 44c5.1 0 9.8-1.9 13.3-5.1l-6.1-5.1C29.1 35.9 26.7 37 24 37c-5.1 0-9.4-3.3-11-7.9l-6.6 5.1C9.1 39.4 16.1 44 24 44z"/>
+              <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-1.4 4.2-5.4 7-10.3 7-5.1 0-9.4-3.3-11-7.9l-6.6 5.1C9.1 39.4 16.1 44 24 44c10 0 19-7.3 19-20 0-1.2-.1-2.5-.4-3.5z"/>
+            </svg>
+            Entrar con otras opciones
+          </a>
         </div>
       </form>
+
+      <div class="text-center mt-2">
+        <small>¿No tienes cuenta? <a href="{% url 'signup' %}">Crear cuenta</a></small>
+      </div>
     </div>
   </div>
-
-  <script>
-    // Enviamos SIEMPRE a Google via Auth0; los inputs son decorativos
-    document.getElementById('fakeLogin').addEventListener('submit', function(e){
-      e.preventDefault();
-      window.location.href = "/login?provider=google";
-    });
-  </script>
 </body>
 </html>
+

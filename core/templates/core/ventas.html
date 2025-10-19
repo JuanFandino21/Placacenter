@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Ventas{% endblock %}
+
+{% block content %}
+<style>
+  .sidebar, #sidebar, nav[aria-label="Sidebar"] { display: none !important; }
+  main, .content, #content, .page-wrapper { margin-left: 0 !important; width: 100% !important; }
+
+  .pc-title { font-weight: 800; letter-spacing:.5px; color: var(--pc-accent-2); font-size: clamp(28px,3vw,42px); }
+  .pc-topbar { display:flex; align-items:center; gap:10px; justify-content:space-between; margin-bottom:12px; }
+  .pc-back { border:1px solid var(--pc-border); background:var(--pc-card); color:var(--pc-fg);
+             padding:.55rem .85rem; border-radius:12px; text-decoration:none; }
+
+  .pc-search { background:var(--pc-card); color:var(--pc-fg); border:1px solid var(--pc-border);
+               border-radius:12px; padding:.7rem .9rem; width:100%; outline:none; }
+
+  .pc-layout { display:grid; grid-template-columns:1fr; gap:24px; }
+  @media (min-width:1024px){ .pc-layout { grid-template-columns: minmax(0,1fr) 360px; } }
+
+  .pc-cat { color:var(--pc-fg-dim); font-weight:700; letter-spacing:.4px; margin:16px 0 8px; }
+  .pc-grid { display:grid; grid-template-columns:repeat(1,minmax(0,1fr)); gap:14px; }
+  @media (min-width:768px){ .pc-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  @media (min-width:1280px){ .pc-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+
+  .pc-card { background:var(--pc-card); border:1px solid var(--pc-border); border-radius:16px; padding:14px;
+             box-shadow: 0 10px 30px rgba(0,0,0,.15); }
+  .pc-card h4 { margin:4px 0; color:var(--pc-fg); font-weight:700; font-size:1.1rem; }
+  .pc-sku { color:var(--pc-fg-dim); font-size:.85rem; }
+  .pc-price { color:var(--pc-accent); margin-bottom:.6rem; }
+  .pc-btn { border-radius:12px; padding:.55rem .9rem; background:var(--pc-accent); color:#0b1220;
+            font-weight:700; border:none; cursor:pointer; }
+
+  .pc-cart { background:var(--pc-bg-acc); border:1px solid var(--pc-border); border-radius:18px; padding:16px;
+             position:sticky; top:24px; }
+  .pc-cart h3 { color:var(--pc-fg); font-size: clamp(20px,2.2vw,28px); font-weight:800; margin-bottom:.6rem; }
+</style>
+
+<div class="pc-layout">
+
+  <section>
+    <div class="pc-topbar">
+      <h1 class="pc-title" style="margin:0;">Ventas</h1>
+      <a class="pc-back" href="{% url 'principal' %}">← Volver a Principal</a>
+    </div>
+
+    <form method="get" style="margin: 8px 0 18px;">
+      <input class="pc-search" name="q" value="{{ q }}" placeholder="Buscar por nombre o SKU">
+    </form>
+
+    {% if grupos %}
+      {% for cat, productos in grupos %}
+        <div class="pc-cat">{{ cat.nombre }}</div>
+        <div class="pc-grid">
+          {% for p in productos %}
+          <article class="pc-card">
+            <div class="pc-sku">{{ p.sku }}</div>
+            <h4>{{ p.nombre }}</h4>
+            <div class="pc-price">$ {{ p.precio_venta|floatformat:0 }} cop</div>
+            <button
+              type="button"
+              hx-get="{% url 'cart_add' p.id %}"
+              hx-target="#cart-panel"
+              hx-swap="outerHTML"
+              class="pc-btn">Agregar</button>
+          </article>
+          {% endfor %}
+        </div>
+      {% endfor %}
+    {% else %}
+      <p style="color:var(--pc-fg-dim)">No hay productos que coincidan con tu búsqueda.</p>
+    {% endif %}
+  </section>
+
+  <div>
+    <div id="cart-panel"
+         class="pc-cart"
+         hx-get="{% url 'cart_partial' %}"
+         hx-trigger="load"
+         hx-swap="outerHTML">
+      <h3>Carrito</h3>
+      <p style="color:var(--pc-fg-dim); margin:0;">Cargando…</p>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://unpkg.com/htmx.org@1.9.12"></script>
+{% endblock %}

@@ -1,17 +1,41 @@
 from django.urls import path
 from django.shortcuts import redirect
 from .views import (
-    signin_view,
+    signin_view, login_local_view, signup_view,
+    principal_view, gestion_home_view, ventas_view,
     CategoriaListView, CategoriaCreateView, CategoriaUpdateView,
     ProveedorListView, ProveedorCreateView, ProveedorUpdateView,
     ProductoListView, ProductoCreateView, ProductoUpdateView,
     entrada_stock_view,
+    # carrito
+    cart_partial, cart_add, cart_dec, cart_remove, cart_empty, ventas_confirmar,
 )
 
 urlpatterns = [
-    path('', lambda r: redirect('productos_list') if r.user.is_authenticated else redirect('signin'), name='home'),
-    path('signin/', signin_view, name='signin'),
+    path('', lambda r: redirect('principal') if r.user.is_authenticated else redirect('signin'), name='home'),
 
+    # Auth local
+    path('signin/', signin_view, name='signin'),
+    path('signin/local/', login_local_view, name='login_local'),
+    path('signup/', signup_view, name='signup'),
+
+    # Principal
+    path('principal/', principal_view, name='principal'),
+    path('gestion/', gestion_home_view, name='gestion_home'),
+
+    # Ventas
+    path('ventas/', ventas_view, name='ventas'),
+    path('ventas/', ventas_view, name='ventas_home'),  # alias
+
+    # Carrito (IMPORTANTE: todas con slash final)
+    path('ventas/cart/', cart_partial, name='cart_partial'),
+    path('ventas/add/<int:producto_id>/', cart_add, name='cart_add'),
+    path('ventas/dec/<int:producto_id>/', cart_dec, name='cart_dec'),
+    path('ventas/remove/<int:producto_id>/', cart_remove, name='cart_remove'),
+    path('ventas/empty/', cart_empty, name='cart_empty'),
+    path('ventas/confirmar/', ventas_confirmar, name='ventas_confirmar'),
+
+    # Gestión
     path('categorias/', CategoriaListView.as_view(), name='categorias_list'),
     path('categorias/nueva/', CategoriaCreateView.as_view(), name='categoria_create'),
     path('categorias/<int:pk>/editar/', CategoriaUpdateView.as_view(), name='categoria_update'),
