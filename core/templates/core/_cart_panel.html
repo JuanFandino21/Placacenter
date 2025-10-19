@@ -1,45 +1,84 @@
-<div class="pc-cart">
-  <h3>Carrito</h3>
+{# templates/core/_cart_panel.html #}
+<style>
+  .pc-cart-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:.5rem; }
+  .pc-cart-title  { margin:0; font-weight:800; color:var(--pc-fg); }
+  .pc-cart-empty  { color:var(--pc-fg-dim); margin:0; }
+  .pc-cart-list   { display:flex; flex-direction:column; gap:.6rem; margin: .5rem 0 1rem; }
+  .pc-cart-item   { background:var(--pc-card); border:1px solid var(--pc-border); border-radius:12px; padding:.6rem .7rem; display:grid; grid-template-columns:1fr auto; gap:.5rem; }
+  .pc-ci-name     { color:var(--pc-fg); font-weight:700; margin:0; }
+  .pc-ci-sku      { color:var(--pc-fg-dim); font-size:.8rem; }
+  .pc-ci-right    { text-align:right; display:flex; flex-direction:column; gap:.25rem; }
+  .pc-ci-qty      { display:flex; align-items:center; justify-content:flex-end; gap:.35rem; }
+  .pc-btn-sm      { border-radius:8px; border:1px solid var(--pc-border); background:var(--pc-bg-acc); color:var(--pc-fg); padding:.2rem .5rem; cursor:pointer; }
+  .pc-btn-del     { border-radius:8px; border:1px solid var(--pc-border); background:#2a1416; color:#ff7a82; padding:.25rem .5rem; cursor:pointer; }
+  .pc-total       { display:flex; align-items:center; justify-content:space-between; font-weight:800; color:var(--pc-fg); margin:.6rem 0 1rem; }
+  .pc-actions     { display:flex; gap:.5rem; }
+  .pc-btn         { border-radius:12px; padding:.6rem .9rem; border:none; cursor:pointer; font-weight:700; }
+  .pc-btn-warn    { background:#2a1416; color:#ff9aa3; border:1px solid #3a1d21; }
+  .pc-btn-ok      { background:var(--pc-accent); color:#0b1220; }
+</style>
+
+<div id="cart-panel" class="pc-cart">
+  <div class="pc-cart-header">
+    <h3 class="pc-cart-title">Carrito</h3>
+    <button
+      class="pc-btn-sm"
+      hx-get="{% url 'cart_partial' %}"
+      hx-swap="outerHTML"
+      hx-target="#cart-panel"
+      title="Refrescar"
+    >⟳</button>
+  </div>
 
   {% if items %}
-    <ul style="display:flex; flex-direction:column; gap:8px; margin:0; padding:0; list-style:none;">
+    <div class="pc-cart-list">
       {% for it in items %}
-      <li class="pc-card" style="display:flex; align-items:center; gap:10px; padding:10px;">
-        <div style="flex:1 1 auto;">
-          <div style="color:var(--pc-fg); font-weight:700;">{{ it.nombre }}</div>
-          <div style="color:var(--pc-fg-dim); font-size:.85rem;">{{ it.sku }}</div>
+        <div class="pc-cart-item">
+          <div>
+            <p class="pc-ci-name">{{ it.nombre }}</p>
+            <div class="pc-ci-sku">SKU: {{ it.sku }} • $ {{ it.precio|floatformat:0 }}</div>
+          </div>
+          <div class="pc-ci-right">
+            <div class="pc-ci-qty">
+              <button class="pc-btn-sm"
+                      hx-get="{% url 'cart_dec' it.id %}"
+                      hx-target="#cart-panel"
+                      hx-swap="outerHTML">−</button>
+              <div>x{{ it.qty }}</div>
+              <button class="pc-btn-sm"
+                      hx-get="{% url 'cart_add' it.id %}"
+                      hx-target="#cart-panel"
+                      hx-swap="outerHTML">＋</button>
+            </div>
+            <div>Subt: $ {{ it.subtotal|floatformat:0 }}</div>
+            <div>
+              <button class="pc-btn-del"
+                      hx-get="{% url 'cart_remove' it.id %}"
+                      hx-target="#cart-panel"
+                      hx-swap="outerHTML">Quitar</button>
+            </div>
+          </div>
         </div>
-
-        <div style="display:flex; align-items:center; gap:8px;">
-          <button hx-get="{% url 'cart_dec' it.id %}" hx-target="#cart-panel" hx-swap="outerHTML"
-                  style="background:transparent; color:var(--pc-fg); border:1px solid var(--pc-border);
-                         padding:.2rem .5rem; border-radius:8px;">−</button>
-          <span style="min-width:22px; text-align:center; color:var(--pc-fg);">{{ it.qty }}</span>
-          <button hx-get="{% url 'cart_add' it.id %}" hx-target="#cart-panel" hx-swap="outerHTML"
-                  style="background:transparent; color:var(--pc-fg); border:1px solid var(--pc-border);
-                         padding:.2rem .5rem; border-radius:8px;">＋</button>
-        </div>
-
-        <div style="width:90px; text-align:right; color:var(--pc-fg);">$ {{ it.subtotal|floatformat:0 }}</div>
-
-        <button hx-get="{% url 'cart_remove' it.id %}" hx-target="#cart-panel" hx-swap="outerHTML"
-                class="pc-btn" style="background:#ff6b6b; color:white;">Quitar</button>
-      </li>
       {% endfor %}
-    </ul>
-
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; color:var(--pc-fg); font-size:1.05rem;">
-      <span>Total</span>
-      <strong>$ {{ total|floatformat:0 }}</strong>
     </div>
 
-    <div style="display:flex; gap:8px; margin-top:12px;">
-      <button hx-get="{% url 'cart_empty' %}" hx-target="#cart-panel" hx-swap="outerHTML"
-              class="pc-btn" style="background:#404756; color:white;">Vaciar</button>
-      <a href="{% url 'ventas_confirmar' %}" class="pc-btn">Confirmar compra</a>
+    <div class="pc-total">
+      <div>Total</div>
+      <div>$ {{ total|floatformat:0 }}</div>
+    </div>
+
+    <div class="pc-actions">
+      <button class="pc-btn pc-btn-warn"
+              hx-get="{% url 'cart_empty' %}"
+              hx-target="#cart-panel"
+              hx-swap="outerHTML">Vaciar</button>
+
+      <a class="pc-btn pc-btn-ok" href="{% url 'ventas_confirmar' %}">
+        Confirmar venta
+      </a>
     </div>
 
   {% else %}
-    <p style="color:var(--pc-fg-dim)">Tu carrito está vacío.</p>
+    <p class="pc-cart-empty">Tu carrito está vacío.</p>
   {% endif %}
 </div>

@@ -4,19 +4,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Placacenter</title>
-
+  <title>{% block title %}Placacenter{% endblock %}</title>
 
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
-
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-
   <link href="{% static 'core/styles.css' %}" rel="stylesheet">
+
+  {% block extra_head %}{% endblock %}
 </head>
 <body>
 
+  <!-- Sidebar -->
   <aside id="sidebar" class="pc-sidebar">
     <div class="pc-brand">
       <i class="bi bi-hammer"></i>
@@ -24,6 +23,15 @@
     </div>
 
     <nav class="pc-nav">
+      <a href="/principal/" class="pc-link {% if request.path|slice:':10' == '/principal' %}active{% endif %}">
+        <i class="bi bi-house"></i> Principal
+      </a>
+
+      <a href="/ventas/" class="pc-link {% if request.path|slice:':7' == '/ventas' %}active{% endif %}">
+        <i class="bi bi-cash-coin"></i> Ventas
+      </a>
+
+      <div class="pc-section">Catálogo</div>
       <a href="/productos/" class="pc-link {% if request.path|slice:':10' == '/productos' %}active{% endif %}">
         <i class="bi bi-box-seam"></i> Productos
       </a>
@@ -52,8 +60,9 @@
     </div>
   </aside>
 
+  <!-- Contenido -->
   <main class="pc-content">
-
+    <!-- Topbar móvil -->
     <div class="pc-topbar d-md-none">
       <button id="mobileToggle" class="btn btn-outline-secondary btn-sm">
         <i class="bi bi-list"></i>
@@ -61,40 +70,54 @@
       <strong>Placacenter</strong>
     </div>
 
+    <!-- Mensajes del framework de Django -->
+    {% if messages %}
+      <div class="container-fluid px-4 pt-3">
+        {% for message in messages %}
+          <div class="alert {% if message.tags %}alert-{{ message.tags }}{% else %}alert-secondary{% endif %} border-0 shadow-sm mb-2" role="alert">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <!-- Página -->
     <div class="container-fluid px-4 py-4">
       {% block content %}{% endblock %}
     </div>
   </main>
 
+  <!-- Scripts -->
   <script>
-
+    // Colapsar sidebar en escritorio
     const collapseBtn = document.getElementById('collapseBtn');
     const sidebar = document.getElementById('sidebar');
-    if (collapseBtn) {
+    if (collapseBtn && sidebar) {
       collapseBtn.addEventListener('click', () => {
         sidebar.classList.toggle('collapsed');
         document.querySelector('.pc-content').classList.toggle('expanded');
       });
     }
 
-
+    // Abrir/cerrar sidebar en móvil
     const mobileToggle = document.getElementById('mobileToggle');
-    if (mobileToggle) {
+    if (mobileToggle && sidebar) {
       mobileToggle.addEventListener('click', () => {
         sidebar.classList.toggle('open');
       });
     }
 
-
+    // Cerrar sidebar móvil al tocar fuera
     document.addEventListener('click', (e) => {
       if (window.innerWidth < 768) {
         const inSidebar = e.target.closest('#sidebar');
         const inToggle = e.target.closest('#mobileToggle');
-        if (!inSidebar && !inToggle) sidebar.classList.remove('open');
+        if (!inSidebar && !inToggle && sidebar) sidebar.classList.remove('open');
       }
     });
   </script>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  {% block extra_js %}{% endblock %}
 </body>
 </html>

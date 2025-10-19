@@ -381,7 +381,7 @@ def cart_partial(request):
 def cart_add(request, producto_id):
     p = get_object_or_404(Producto, pk=producto_id)
     Cart(request).add(p.id, p.precio_venta, qty=1)
-    # Siempre devolvemos el panel actualizado (ideal para HTMX)
+    # Siempre devolver el panel actualizado (HTMX-friendly)
     return cart_partial(request)
 
 @login_required
@@ -402,23 +402,66 @@ def cart_empty(request):
 @login_required
 def ventas_confirmar(request):
     """
-    Muestra un comprobante simple con el total y vacía el carrito.
+    Confirma la venta:
+      - Valida stock de todos los ítems del carrito.
+      - Descuenta stock en transacción con select_for_update().
+      - Registra MovimientoInventario tipo SALIDA al costo promedio.
+      - Vacía carrito y muestra comprobante (sin sidebar en la plantilla).
     """
     cart = Cart(request)
-    resumen = []
+    if not cart.items():
+        messages.warning(request, "El carrito está vacío.")
+        return redirect("ventas")
+
+    # Preparar líneas y validar stock sin tocar DB
+    lineas = []
+    insuficientes = []
     for pid, item in cart.items():
         p = get_object_or_404(Producto, pk=int(pid))
         qty = int(item["qty"])
         price = Decimal(item["precio"])
-        resumen.append({
-            "producto": f"{p.nombre} ({p.sku})",
-            "qty": qty,
-            "precio": str(price),
-            "subtotal": float(price * qty),
-        })
-    total = cart.subtotal()
+        if p.stock < qty:
+            insuficientes.append((p, qty, p.stock))
+        lineas.append((p, qty, price))
+
+    if insuficientes:
+        msg = "Stock insuficiente para: " + ", ".join(
+            [f"{p.nombre} (necesita {need}, disponible {have})" for p, need, have in insuficientes]
+        )
+        messages.error(request, msg)
+        return redirect("ventas")
+
+    resumen = []
+    total = Decimal("0.00")
+    # Descontar y registrar movimiento
+    with transaction.atomic():
+        for p, qty, price in lineas:
+            prod = Producto.objects.select_for_update().get(pk=p.pk)
+            prod.stock = prod.stock - qty
+            prod.save(update_fields=["stock"])
+
+            MovimientoInventario.objects.create(
+                producto=prod,
+                tipo="SALIDA",
+                cantidad=qty,
+                costo_unitario=prod.costo_promedio,
+                motivo="VENTA",
+            )
+
+            subtotal = (price * qty).quantize(Decimal("0.01"))
+            total += subtotal
+            resumen.append({
+                "producto": f"{prod.nombre} ({prod.sku})",
+                "qty": qty,
+                "precio": str(price),
+                "subtotal": float(subtotal),
+            })
+
     cart.empty()
-    return render(request, "core/venta_confirmada.html", {"resumen": resumen, "total": total})
+    return render(request, "core/venta_confirmada.html", {
+        "resumen": resumen,
+        "total": float(total),
+    })
 
 
 # ------------------------------------

@@ -27,7 +27,7 @@ urlpatterns = [
     path('ventas/', ventas_view, name='ventas'),
     path('ventas/', ventas_view, name='ventas_home'),  # alias
 
-    # Carrito (IMPORTANTE: todas con slash final)
+    # Carrito (todas con slash final)
     path('ventas/cart/', cart_partial, name='cart_partial'),
     path('ventas/add/<int:producto_id>/', cart_add, name='cart_add'),
     path('ventas/dec/<int:producto_id>/', cart_dec, name='cart_dec'),
