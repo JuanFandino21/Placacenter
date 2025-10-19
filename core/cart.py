@@ -5,13 +5,7 @@ SESSION_KEY = "cart"
 
 
 class Cart:
-    """
-    Carrito basado en sesión.
-    Estructura en session[SESSION_KEY] = {
-        "producto_id": {"qty": int, "precio": "12.34"},
-        ...
-    }
-    """
+    
     def __init__(self, request):
         self.session = request.session
         cart = self.session.get(SESSION_KEY)
@@ -20,7 +14,7 @@ class Cart:
             self.session[SESSION_KEY] = cart
         self._cart = cart
 
-    # Helpers ----------------------------
+    # Helpers
     def _save(self):
         self.session[SESSION_KEY] = self._cart
         self.session.modified = True
@@ -29,7 +23,7 @@ class Cart:
         """Iterar items como (pid, data)."""
         return self._cart.items()
 
-    # Operaciones ------------------------
+    # Operaciones 
     def add(self, product_id, price, qty=1):
         pid = str(product_id)
         if pid not in self._cart:

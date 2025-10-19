@@ -36,7 +36,7 @@ class ProductoForm(forms.ModelForm):
             "stock": forms.NumberInput(attrs={"class": "form-control", "min": "0"}),
             "stock_minimo": forms.NumberInput(attrs={"class": "form-control", "min": "0"}),
             "unidad": forms.Select(attrs={"class": "form-select"}),
-            # 'activo' suele renderizar un checkbox; le damos clase bootstrap:
+            
             "activo": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
 

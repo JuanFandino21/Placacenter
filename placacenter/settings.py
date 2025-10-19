@@ -6,14 +6,14 @@ from urllib.parse import urlparse, parse_qsl
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Carga variables desde .env en local (en Railway se leen del entorno)
+# Carga variables desde .env en local en Railway se leen del entorno
 load_dotenv(BASE_DIR / ".env", override=True)
 
-# --- Seguridad / Debug ---
+# Seguridad  Debug 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-secret-key-placacenter")
 DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() == "true"
 
-# --- Hosts / CSRF ---
+# Hosts / CSRF 
 ALLOWED_HOSTS = [h.strip() for h in os.getenv("DJANGO_ALLOWED_HOSTS", "*").split(",") if h.strip()]
 
 _raw_csrf = os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "").strip()
@@ -24,12 +24,12 @@ else:
     if DEBUG:
         CSRF_TRUSTED_ORIGINS += ["http://localhost", "http://127.0.0.1"]
 
-# Detrás del proxy de Railway
+# detras del proxy de railway
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_SECURE = not DEBUG
 
-# --- Apps ---
+#  apps 
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -73,7 +73,7 @@ TEMPLATES = [
 WSGI_APPLICATION = "placacenter.wsgi.application"
 ASGI_APPLICATION = "placacenter.asgi.application"
 
-# --- Base de Datos: PostgreSQL (Railway) ---
+# Base de Datos PostgreSQL tambien en Railway
 def parse_database_url(url: str):
     r = urlparse(url)
     scheme = (r.scheme or "").lower()
@@ -101,12 +101,12 @@ def parse_database_url(url: str):
         },
     }
 
-    # Mezclar parámetros de query (ej. sslmode=require) en OPTIONS
+    
     qparams = dict(parse_qsl(r.query or ""))
     if qparams:
         cfg["OPTIONS"].update(qparams)
 
-    # Forzar sslmode=require si no vino en la URL
+    
     if "sslmode" not in cfg["OPTIONS"]:
         cfg["OPTIONS"]["sslmode"] = "require"
 
@@ -143,7 +143,7 @@ def build_cfg_from_env():
         },
     }
 
-# Permitir que collectstatic no requiera DB durante el build
+# permitir que collectstatic no requiera DB durante el build
 RUNNING_COLLECTSTATIC = "collectstatic" in sys.argv
 
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -153,7 +153,7 @@ else:
     cfg = build_cfg_from_env()
     if not cfg:
         if RUNNING_COLLECTSTATIC:
-            # Backend dummy solo para el paso de estáticos en el build
+            # backend prueba solo para el paso de estáticos en el build
             DB_DEFAULT = {"ENGINE": "django.db.backends.dummy"}
         else:
             raise RuntimeError(
@@ -172,7 +172,7 @@ TIME_ZONE = "America/Bogota"
 USE_I18N = True
 USE_TZ = True
 
-# --- Static / Whitenoise ---
+# Static / Whitenoise 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STORAGES = {
@@ -183,7 +183,7 @@ STORAGES = {
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# --- DRF ---
+#  DRF 
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",
@@ -191,14 +191,14 @@ REST_FRAMEWORK = {
     ]
 }
 
-# --- Auth / Login ---
+# Auth / Login 
 LOGIN_URL = "/signin/"
 LOGIN_REDIRECT_URL = "/principal/"
 LOGOUT_REDIRECT_URL = "/"
 
 AUTHENTICATION_BACKENDS = ["django.contrib.auth.backends.ModelBackend"]
 
-# --- Auth0 (desde .env) ---
+# Auth0 desde .env
 AUTH0_DOMAIN = os.getenv("AUTH0_DOMAIN", "")
 AUTH0_CLIENT_ID = os.getenv("AUTH0_CLIENT_ID", "")
 AUTH0_CLIENT_SECRET = os.getenv("AUTH0_CLIENT_SECRET", "")

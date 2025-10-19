@@ -29,10 +29,7 @@ from .cart import Cart  # carrito en sesión
 
 User = get_user_model()
 
-# ------------------------------------
 #  LOGIN LOCAL + REGISTRO
-# ------------------------------------
-
 class SignInForm(forms.Form):
     username = forms.CharField(
         label="Usuario / correo",
@@ -159,10 +156,7 @@ def signup_view(request):
     return render(request, "signup.html", {"form": form})
 
 
-# ------------------------------------
 #  PANTALLAS PRINCIPALES
-# ------------------------------------
-
 @login_required
 def principal_view(request):
     return render(request, "principal.html")
@@ -200,9 +194,7 @@ def ventas_view(request):
     return render(request, "core/ventas.html", {"grupos": grupos, "q": q})
 
 
-# ------------------------------------
 #  Auth0 (OAuth / OIDC)
-# ------------------------------------
 oauth = OAuth()
 if not getattr(oauth, "auth0", None):
     oauth.register(
@@ -253,9 +245,7 @@ def auth_logout(request):
     )
 
 
-# ------------------------------------
 #  HTML (módulos protegidos)
-# ------------------------------------
 class CategoriaListView(LoginRequiredMixin, ListView):
     model = Categoria
     template_name = "categorias_list.html"
@@ -348,10 +338,7 @@ def entrada_stock_view(request, producto_id):
     return render(request, "entrada_stock.html", {"form": form, "producto": producto})
 
 
-# ------------------------------------
-#  VENTAS – acciones del carrito (parciales SIEMPRE)
-# ------------------------------------
-
+#  VENTAS – acciones del carrito 
 @login_required
 def cart_partial(request):
     """
@@ -381,7 +368,7 @@ def cart_partial(request):
 def cart_add(request, producto_id):
     p = get_object_or_404(Producto, pk=producto_id)
     Cart(request).add(p.id, p.precio_venta, qty=1)
-    # Siempre devolver el panel actualizado (HTMX-friendly)
+    # Siempre devolver el panel actualizado 
     return cart_partial(request)
 
 @login_required
@@ -464,9 +451,8 @@ def ventas_confirmar(request):
     })
 
 
-# ------------------------------------
+
 #  API
-# ------------------------------------
 class CategoriaViewSet(viewsets.ModelViewSet):
     queryset = Categoria.objects.all()
     serializer_class = CategoriaSerializer
