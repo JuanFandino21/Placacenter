@@ -12,7 +12,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, F
 from django.http import HttpResponseBadRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -20,6 +20,8 @@ from django.views.decorators.http import require_GET
 from django.views.generic import ListView, CreateView, UpdateView
 from django.template.loader import render_to_string
 from rest_framework import viewsets, filters
+from rest_framework.generics import ListAPIView
+from rest_framework.permissions import AllowAny
 from authlib.integrations.django_client import OAuth
 
 from .models import Categoria, Proveedor, Producto, MovimientoInventario
@@ -95,7 +97,7 @@ class SignUpForm(UserCreationForm):
     email = forms.EmailField(
         label="Correo",
         required=True,
-        help_text="Solo correos: @gmail.*, @googlemail.*, @outlook.*, @hotmail.*, @live.*, @yahoo.*",
+        help_text="Solo correos: @gmail., @googlemail., @outlook., @hotmail., @live., @yahoo.",
         widget=forms.EmailInput(attrs={"placeholder": "tu_correo@dominio.com"})
     )
     first_name = forms.CharField(
@@ -108,8 +110,8 @@ class SignUpForm(UserCreationForm):
         model = User
         fields = ("username", "email", "first_name", "password1", "password2")
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def _init_(self, *args, **kwargs):
+        super()._init_(*args, **kwargs)
         field_cfg = {
             "username": {"placeholder": ""},
             "email": {"placeholder": "tu_correo@dominio.com"},
@@ -128,7 +130,7 @@ class SignUpForm(UserCreationForm):
         email = (self.cleaned_data.get("email") or "").strip().lower()
         if not _EMAIL_RE.match(email):
             raise forms.ValidationError(
-                "Correo no permitido. Usa @gmail.*, @googlemail.*, @outlook.*, @hotmail.*, @live.* o @yahoo.*"
+                "Correo no permitido. Usa @gmail., @googlemail., @outlook., @hotmail., @live.* o @yahoo.*"
             )
         if User.objects.filter(email__iexact=email).exists():
             raise forms.ValidationError("Ya existe un usuario con este correo.")
@@ -180,7 +182,7 @@ def ventas_view(request):
         .order_by("nombre")
     )
     if q:
-        base_qs = base_qs.filter(Q(nombre__icontains=q) | Q(sku__icontains=q))
+        base_qs = base_qs.filter(Q(nombre_icontains=q) | Q(sku_icontains=q))
 
     grupos_dict = {}
     for p in base_qs:
@@ -285,7 +287,7 @@ class ProductoListView(LoginRequiredMixin, ListView):
         qs = super().get_queryset().select_related("categoria", "proveedor")
         q = self.request.GET.get("q")
         if q:
-            qs = qs.filter(Q(nombre__icontains=q) | Q(sku__icontains=q))
+            qs = qs.filter(Q(nombre_icontains=q) | Q(sku_icontains=q))
         categoria = self.request.GET.get("categoria")
         if categoria:
             qs = qs.filter(categoria_id=categoria)
@@ -451,8 +453,24 @@ def ventas_confirmar(request):
     })
 
 
+#  ======== API ========
 
-#  API
+class ProductosStockBajoList(ListAPIView):
+    """
+    Devuelve productos con stock <= stock_minimo y activos.
+    Consumida por la Lambda de AWS para generar la alerta.
+    """
+    serializer_class = ProductoSerializer
+    permission_classes = [AllowAny]  # si quieren protegerlo, cámbienlo a IsAuthenticated
+
+    def get_queryset(self):
+        return (
+            Producto.objects
+            .select_related("categoria", "proveedor")
+            .filter(activo=True, stock__lte=F("stock_minimo"))
+            .order_by("nombre")
+        )
+
 class CategoriaViewSet(viewsets.ModelViewSet):
     queryset = Categoria.objects.all()
     serializer_class = CategoriaSerializer
