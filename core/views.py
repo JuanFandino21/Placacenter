@@ -1,8 +1,7 @@
 from decimal import Decimal
 from urllib.parse import quote
-from types import SimpleNamespace  # para “Sin categoría”
+from types import SimpleNamespace  
 import re
-
 from django import forms
 from django.conf import settings
 from django.contrib import messages
@@ -23,11 +22,12 @@ from rest_framework import viewsets, filters
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import AllowAny
 from authlib.integrations.django_client import OAuth
-
+import csv         
+import io 
 from .models import Categoria, Proveedor, Producto, MovimientoInventario
 from .serializers import CategoriaSerializer, ProveedorSerializer, ProductoSerializer
 from .forms import CategoriaForm, ProveedorForm, ProductoForm, EntradaStockForm
-from .cart import Cart  # carrito en sesión
+from .cart import Cart  
 
 User = get_user_model()
 
@@ -110,8 +110,8 @@ class SignUpForm(UserCreationForm):
         model = User
         fields = ("username", "email", "first_name", "password1", "password2")
 
-    def _init_(self, *args, **kwargs):
-        super()._init_(*args, **kwargs)
+    def init(self, *args, **kwargs):
+        super().init(*args, **kwargs)
         field_cfg = {
             "username": {"placeholder": ""},
             "email": {"placeholder": "tu_correo@dominio.com"},
@@ -247,7 +247,7 @@ def auth_logout(request):
     )
 
 
-#  HTML (módulos protegidos)
+#  HTML 
 class CategoriaListView(LoginRequiredMixin, ListView):
     model = Categoria
     template_name = "categorias_list.html"
@@ -339,6 +339,265 @@ def entrada_stock_view(request, producto_id):
 
     return render(request, "entrada_stock.html", {"form": form, "producto": producto})
 
+import csv
+import io
+from decimal import Decimal
+
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.db import transaction
+
+from .models import Categoria, Proveedor, Producto, MovimientoInventario
+
+
+@login_required
+def inventario_entradas_view(request):
+    """
+    Pantalla de inventario:
+    - Lista los productos.
+    - Permite importar un CSV (acepta coma o punto y coma).
+    - Desde aquí también se descarga el PDF.
+    """
+    productos = (
+        Producto.objects
+        .select_related("categoria", "proveedor")
+        .order_by("nombre")
+    )
+
+    # Si se envía un archivo CSV
+    if request.method == "POST" and request.FILES.get("csv_file"):
+        archivo = request.FILES["csv_file"]
+
+        # Validamos extensión
+        if not archivo.name.lower().endswith(".csv"):
+            messages.error(request, "Debes subir un archivo .csv")
+            return redirect("inventario_entradas")
+
+        # Leemos el contenido del archivo
+        contenido_bytes = archivo.read()
+        try:
+            contenido = contenido_bytes.decode("utf-8-sig")
+        except UnicodeDecodeError:
+            contenido = contenido_bytes.decode("latin1")
+
+        if not contenido.strip():
+            messages.error(request, "El archivo está vacío.")
+            return redirect("inventario_entradas")
+
+        # Detectar si usa ; o ,
+        primera_linea = contenido.splitlines()[0]
+        if ";" in primera_linea and "," not in primera_linea:
+            delimiter = ";"
+        else:
+            delimiter = ","
+
+        f = io.StringIO(contenido)
+        reader = csv.DictReader(f, delimiter=delimiter)
+
+        if not reader.fieldnames:
+            messages.error(request, "No se encontraron encabezados en el CSV.")
+            return redirect("inventario_entradas")
+
+        # Normalizamos nombres de columnas (quitamos espacios y pasamos a minúsculas)
+        headers = [(h or "").strip().lower() for h in reader.fieldnames]
+        columnas_obligatorias = ["producto", "categoria", "proveedor", "cantidad", "costo_unitario"]
+
+        if not set(columnas_obligatorias).issubset(set(headers)):
+            messages.error(
+                request,
+                "El CSV debe tener las columnas: producto, categoria, proveedor, cantidad, costo_unitario. "
+                "Opcionales: sku, precio_venta."
+            )
+            return redirect("inventario_entradas")
+
+        creadas_cat = creados_prov = creados_prod = filas_ok = 0
+
+        # Procesamos todo el archivo como una sola transacción
+        with transaction.atomic():
+            for fila in reader:
+                # fila es dict con las columnas, aquí las limpiamos
+                fila_norm = {
+                    (k or "").strip().lower(): (v or "").strip()
+                    for k, v in fila.items()
+                }
+
+                nombre_prod = fila_norm.get("producto", "")
+                nombre_cat = fila_norm.get("categoria", "")
+                nombre_prov = fila_norm.get("proveedor", "")
+                sku = fila_norm.get("sku", "")
+
+                if not nombre_prod:
+                    # Si no hay nombre de producto, ignoramos la fila
+                    continue
+
+                # Cantidad
+                try:
+                    cantidad = int(fila_norm.get("cantidad") or "0")
+                except ValueError:
+                    continue
+                if cantidad <= 0:
+                    continue
+
+                # Costo unitario (costo de compra)
+                try:
+                    costo_unitario = Decimal(fila_norm.get("costo_unitario") or "0").quantize(Decimal("0.01"))
+                except Exception:
+                    continue
+
+                # Precio de venta (opcional)
+                precio_venta_valor = None
+                if fila_norm.get("precio_venta"):
+                    try:
+                        precio_venta_valor = Decimal(fila_norm["precio_venta"]).quantize(Decimal("0.01"))
+                    except Exception:
+                        precio_venta_valor = None
+
+                # Categoría
+                categoria = None
+                if nombre_cat:
+                    categoria, creada = Categoria.objects.get_or_create(nombre=nombre_cat)
+                    if creada:
+                        creadas_cat += 1
+
+                # Proveedor
+                proveedor = None
+                if nombre_prov:
+                    proveedor, creado_prov = Proveedor.objects.get_or_create(nombre=nombre_prov)
+                    if creado_prov:
+                        creados_prov += 1
+
+                # Producto
+                producto = None
+                if sku:
+                    # Buscamos por SKU si viene
+                    producto, creado_prod = Producto.objects.get_or_create(
+                        sku=sku,
+                        defaults={
+                            "nombre": nombre_prod,
+                            "categoria": categoria,
+                            "proveedor": proveedor,
+                            "precio_venta": precio_venta_valor or Decimal("0.00"),
+                        }
+                    )
+                    if creado_prod:
+                        creados_prod += 1
+                else:
+                    # Sin SKU: buscamos por nombre + categoría
+                    qs = Producto.objects.filter(nombre__iexact=nombre_prod)
+                    if categoria:
+                        qs = qs.filter(categoria=categoria)
+                    producto = qs.first()
+
+                    if producto is None:
+                        nuevo_sku = f"CSV-{Producto.objects.count() + 1}"
+                        producto = Producto.objects.create(
+                            nombre=nombre_prod,
+                            sku=nuevo_sku,
+                            categoria=categoria,
+                            proveedor=proveedor,
+                            precio_venta=precio_venta_valor or Decimal("0.00"),
+                        )
+                        creados_prod += 1
+
+                # Actualizamos datos básicos
+                if categoria:
+                    producto.categoria = categoria
+                if proveedor:
+                    producto.proveedor = proveedor
+                if precio_venta_valor is not None:
+                    producto.precio_venta = precio_venta_valor
+                producto.save()
+
+                # Recalcular costo promedio y stock (misma lógica que la entrada manual)
+                total_actual = Decimal(producto.costo_promedio) * producto.stock
+                total_nuevo = costo_unitario * Decimal(cantidad)
+                nuevo_stock = producto.stock + cantidad
+                nuevo_costo = (
+                    (total_actual + total_nuevo) / Decimal(nuevo_stock)
+                    if nuevo_stock else Decimal("0")
+                )
+
+                producto.stock = nuevo_stock
+                producto.costo_promedio = nuevo_costo.quantize(Decimal("0.01"))
+                producto.save()
+
+                # Guardamos el movimiento
+                MovimientoInventario.objects.create(
+                    producto=producto,
+                    tipo="ENTRADA",
+                    cantidad=cantidad,
+                    costo_unitario=costo_unitario,
+                    motivo="CARGA CSV",
+                )
+
+                filas_ok += 1
+
+        messages.success(
+            request,
+            f"CSV procesado. Filas correctas: {filas_ok}. "
+            f"Nuevas categorías: {creadas_cat}. Nuevos proveedores: {creados_prov}. Nuevos productos: {creados_prod}."
+        )
+        return redirect("inventario_entradas")
+
+    # GET normal: solo mostrar la tabla
+    return render(request, "core/inventario_entradas.html", {
+        "productos": productos,
+    })
+
+
+@login_required
+def inventario_entradas_pdf(request):
+    """
+    Genera un PDF sencillo con el inventario actual.
+    """
+    productos = (
+        Producto.objects
+        .select_related("categoria", "proveedor")
+        .order_by("nombre")
+    )
+
+    # Importamos aquí para no romper todo el proyecto si falta la librería
+    from reportlab.lib.pagesizes import letter
+    from reportlab.pdfgen import canvas
+
+    response = HttpResponse(content_type="application/pdf")
+    response["Content-Disposition"] = 'attachment; filename=\"inventario_placacenter.pdf\"'
+
+    p = canvas.Canvas(response, pagesize=letter)
+    width, height = letter
+
+    y = height - 50
+    p.setFont("Helvetica-Bold", 14)
+    p.drawString(40, y, "Inventario actual - Placacenter")
+
+    y -= 25
+    p.setFont("Helvetica", 9)
+    p.drawString(40, y, "Nombre")
+    p.drawString(210, y, "SKU")
+    p.drawString(310, y, "Categoría")
+    p.drawString(430, y, "Proveedor")
+    p.drawString(540, y, "Stock")
+
+    y -= 18
+
+    for prod in productos:
+        if y < 40:
+            p.showPage()
+            y = height - 40
+            p.setFont("Helvetica", 9)
+
+        p.drawString(40, y, (prod.nombre or "")[:30])
+        p.drawString(210, y, prod.sku or "")
+        p.drawString(310, y, (prod.categoria.nombre if prod.categoria else "")[:18])
+        p.drawString(430, y, (prod.proveedor.nombre if prod.proveedor else "")[:18])
+        p.drawRightString(590, y, f"{prod.stock} {prod.get_unidad_display()}")
+
+        y -= 16
+
+    p.showPage()
+    p.save()
+    return response
+
 
 #  VENTAS – acciones del carrito 
 @login_required
@@ -370,7 +629,7 @@ def cart_partial(request):
 def cart_add(request, producto_id):
     p = get_object_or_404(Producto, pk=producto_id)
     Cart(request).add(p.id, p.precio_venta, qty=1)
-    # Siempre devolver el panel actualizado 
+    
     return cart_partial(request)
 
 @login_required
@@ -453,7 +712,7 @@ def ventas_confirmar(request):
     })
 
 
-#  ======== API ========
+#  API 
 
 class ProductosStockBajoList(ListAPIView):
     """
@@ -461,7 +720,7 @@ class ProductosStockBajoList(ListAPIView):
     Consumida por la Lambda de AWS para generar la alerta.
     """
     serializer_class = ProductoSerializer
-    permission_classes = [AllowAny]  # si quieren protegerlo, cámbienlo a IsAuthenticated
+    permission_classes = [AllowAny] 
 
     def get_queryset(self):
         return (

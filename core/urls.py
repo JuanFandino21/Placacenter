@@ -9,6 +9,8 @@ from .views import (
     entrada_stock_view,
     # carrito
     cart_partial, cart_add, cart_dec, cart_remove, cart_empty, ventas_confirmar,
+    # para inventario
+    inventario_entradas_view, inventario_entradas_pdf,
 )
 
 urlpatterns = [
@@ -34,6 +36,7 @@ urlpatterns = [
     path('ventas/remove/<int:producto_id>/', cart_remove, name='cart_remove'),
     path('ventas/empty/', cart_empty, name='cart_empty'),
     path('ventas/confirmar/', ventas_confirmar, name='ventas_confirmar'),
+    
 
     # Gestión
     path('categorias/', CategoriaListView.as_view(), name='categorias_list'),
@@ -48,5 +51,10 @@ urlpatterns = [
     path('productos/nuevo/', ProductoCreateView.as_view(), name='producto_create'),
     path('productos/<int:pk>/editar/', ProductoUpdateView.as_view(), name='producto_update'),
 
+    path('inventario/', inventario_entradas_view, name='inventario_entradas'),
+    path('inventario/pdf/', inventario_entradas_pdf, name='inventario_entradas_pdf'),
     path('inventario/entrada/<int:producto_id>/', entrada_stock_view, name='entrada_stock'),
+    
+
+    
 ]

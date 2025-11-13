@@ -15,7 +15,6 @@
 </head>
 <body>
 
-
   <aside id="sidebar" class="pc-sidebar">
     <div class="pc-brand">
       <i class="bi bi-hammer"></i>
@@ -43,14 +42,16 @@
       </a>
 
       <div class="pc-section">Inventario</div>
-      <a href="/productos/" class="pc-link">
+      <a href="/inventario/" class="pc-link {% if request.path|slice:':11' == '/inventario' %}active{% endif %}">
         <i class="bi bi-arrow-down-square"></i> Entradas
       </a>
 
-      <div class="pc-section">Config</div>
-      <a href="/admin/" class="pc-link">
-        <i class="bi bi-gear"></i> Admin
-      </a>
+      {% if request.user.is_staff %}
+        <div class="pc-section">Config</div>
+        <a href="/admin/" class="pc-link">
+          <i class="bi bi-gear"></i> Admin
+        </a>
+      {% endif %}
     </nav>
 
     <div class="pc-footer">
