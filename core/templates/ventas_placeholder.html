@@ -1,8 +1,14 @@
 {% extends 'base.html' %}
+
+{% block title %}Placacenter · Ventas{% endblock %}
+
 {% block content %}
   <div class="card card-body">
     <h3>Ventas</h3>
-    <p>Esta sección estará disponible en el siguiente avance. Por ahora, usa <strong>Gestión</strong> para inventario, categorías y proveedores.</p>
+    <p>
+      Esta sección se irá completando en los siguientes avances.  
+      Por ahora, puedes usar <strong>Gestión</strong> para manejar inventario, categorías y proveedores.
+    </p>
     <a class="btn btn-primary" href="{% url 'gestion_home' %}">Ir a Gestión</a>
   </div>
 {% endblock %}
