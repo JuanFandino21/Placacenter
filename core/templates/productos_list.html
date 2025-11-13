@@ -18,7 +18,7 @@
   <tbody>
   {% for p in object_list %}
     <tr class="{% if p.stock <= p.stock_minimo %}table-warning{% endif %}">
-      <td>{{ p.id }}</td>
+      <td>{{ forloop.counter }}</td>
       <td>{{ p.nombre }}</td>
       <td>{{ p.sku }}</td>
       <td>{{ p.categoria.nombre }}</td>
