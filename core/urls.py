@@ -60,3 +60,4 @@ urlpatterns = [
     
     #reporte de ventas
     path('reportes/ventas/', reporte_ventas_view, name='reporte_ventas'),
+]
