@@ -1,7 +1,8 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+
+{% block title %}Reporte de ventas - Placacenter{% endblock %}
 
 {% block content %}
-
 <h3 class="mb-3">Reporte de ventas</h3>
 
 <form method="get" class="card card-body mb-3">
@@ -9,146 +10,77 @@
     <div class="col-md-3">
       <label class="form-label">Tipo de reporte</label>
       <select name="tipo" class="form-select">
-        <option value="diario"  {% if tipo == 'diario' %}selected{% endif %}>Diario</option>
-        <option value="semanal" {% if tipo == 'semanal' %}selected{% endif %}>Semanal</option>
-        <option value="mensual" {% if tipo == 'mensual' %}selected{% endif %}>Mensual</option>
-        <option value="anual"   {% if tipo == 'anual' %}selected{% endif %}>Anual</option>
+        <option value="diario"  {% if tipo == "diario"  %}selected{% endif %}>Diario</option>
+        <option value="semanal" {% if tipo == "semanal" %}selected{% endif %}>Semanal</option>
+        <option value="mensual" {% if tipo == "mensual" %}selected{% endif %}>Mensual</option>
+        <option value="anual"   {% if tipo == "anual"   %}selected{% endif %}>Anual</option>
       </select>
     </div>
 
     <div class="col-md-3">
       <label class="form-label">Desde</label>
-      <input type="date" name="desde" class="form-control" value="{{ desde }}">
+      <input type="date" name="desde" value="{{ desde }}" class="form-control">
     </div>
 
     <div class="col-md-3">
       <label class="form-label">Hasta</label>
-      <input type="date" name="hasta" class="form-control" value="{{ hasta }}">
+      <input type="date" name="hasta" value="{{ hasta }}" class="form-control">
     </div>
 
     <div class="col-md-3 d-flex align-items-end">
-      <button class="btn btn-primary w-100" type="submit">Filtrar</button>
+      <button type="submit" class="btn btn-primary w-100">
+        Filtrar
+      </button>
     </div>
   </div>
-
-  <p class="text-muted small mt-2 mb-0">
-    Si no seleccionas fechas, se toman los últimos 30 días.
-  </p>
 </form>
 
-<table class="table table-striped align-middle">
-  <thead>
-    <tr>
-      <th>#</th>
-      <th>Periodo</th>
-      <th>Cantidad vendida</th>
-      <th>Total vendido</th>
-      <th>Total costo</th>
-      <th>Utilidad</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for fila in filas %}
-      <tr>
-        <td>{{ forloop.counter }}</td>
-        <td>{{ fila.periodo }}</td>
-        <td>{{ fila.cantidad }}</td>
-        <td>$ {{ fila.total_venta|floatformat:0 }}</td>
-        <td>$ {{ fila.total_costo|floatformat:0 }}</td>
-        <td>$ {{ fila.utilidad|floatformat:0 }}</td>
-      </tr>
-    {% empty %}
-      <tr>
-        <td colspan="6">No hay ventas en el rango seleccionado.</td>
-      </tr>
-    {% endfor %}
-  </tbody>
-  <tfoot>
-    <tr class="fw-bold">
-      <td colspan="2">Totales</td>
-      <td>{{ total_cantidad }}</td>
-      <td>$ {{ total_venta|floatformat:0 }}</td>
-      <td>$ {{ total_costo|floatformat:0 }}</td>
-      <td>$ {{ total_utilidad|floatformat:0 }}</td>
-    </tr>
-  </tfoot>
-</table>
-
-{% endblock %}
-{% extends 'base.html' %}
-
-{% block content %}
-
-<h3 class="mb-3">Reporte de ventas</h3>
-
-<form method="get" class="card card-body mb-3">
-  <div class="row g-3">
-    <div class="col-md-3">
-      <label class="form-label">Tipo de reporte</label>
-      <select name="tipo" class="form-select">
-        <option value="diario"  {% if tipo == 'diario' %}selected{% endif %}>Diario</option>
-        <option value="semanal" {% if tipo == 'semanal' %}selected{% endif %}>Semanal</option>
-        <option value="mensual" {% if tipo == 'mensual' %}selected{% endif %}>Mensual</option>
-        <option value="anual"   {% if tipo == 'anual' %}selected{% endif %}>Anual</option>
-      </select>
-    </div>
-
-    <div class="col-md-3">
-      <label class="form-label">Desde</label>
-      <input type="date" name="desde" class="form-control" value="{{ desde }}">
-    </div>
-
-    <div class="col-md-3">
-      <label class="form-label">Hasta</label>
-      <input type="date" name="hasta" class="form-control" value="{{ hasta }}">
-    </div>
-
-    <div class="col-md-3 d-flex align-items-end">
-      <button class="btn btn-primary w-100" type="submit">Filtrar</button>
+{% if filas %}
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Periodo</th>
+            <th class="text-end">Cantidad</th>
+            <th class="text-end">Total venta</th>
+            <th class="text-end">Total costo</th>
+            <th class="text-end">Utilidad</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for f in filas %}
+          <tr>
+            <td>{{ f.periodo }}</td>
+            <td class="text-end">{{ f.cantidad }}</td>
+            <td class="text-end">$ {{ f.total_venta|floatformat:0 }}</td>
+            <td class="text-end">$ {{ f.total_costo|floatformat:0 }}</td>
+            <td class="text-end">
+              <span class="{% if f.utilidad < 0 %}text-danger{% else %}text-success{% endif %}">
+                $ {{ f.utilidad|floatformat:0 }}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot class="table-light">
+          <tr>
+            <th>Totales</th>
+            <th class="text-end">{{ total_cantidad }}</th>
+            <th class="text-end">$ {{ total_venta|floatformat:0 }}</th>
+            <th class="text-end">$ {{ total_costo|floatformat:0 }}</th>
+            <th class="text-end">$ {{ total_utilidad|floatformat:0 }}</th>
+          </tr>
+        </tfoot>
+      </table>
     </div>
   </div>
-
-  <p class="text-muted small mt-2 mb-0">
-    Si no seleccionas fechas, se toman los últimos 30 días.
-  </p>
-</form>
-
-<table class="table table-striped align-middle">
-  <thead>
-    <tr>
-      <th>#</th>
-      <th>Periodo</th>
-      <th>Cantidad vendida</th>
-      <th>Total vendido</th>
-      <th>Total costo</th>
-      <th>Utilidad</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for fila in filas %}
-      <tr>
-        <td>{{ forloop.counter }}</td>
-        <td>{{ fila.periodo }}</td>
-        <td>{{ fila.cantidad }}</td>
-        <td>$ {{ fila.total_venta|floatformat:0 }}</td>
-        <td>$ {{ fila.total_costo|floatformat:0 }}</td>
-        <td>$ {{ fila.utilidad|floatformat:0 }}</td>
-      </tr>
-    {% empty %}
-      <tr>
-        <td colspan="6">No hay ventas en el rango seleccionado.</td>
-      </tr>
-    {% endfor %}
-  </tbody>
-  <tfoot>
-    <tr class="fw-bold">
-      <td colspan="2">Totales</td>
-      <td>{{ total_cantidad }}</td>
-      <td>$ {{ total_venta|floatformat:0 }}</td>
-      <td>$ {{ total_costo|floatformat:0 }}</td>
-      <td>$ {{ total_utilidad|floatformat:0 }}</td>
-    </tr>
-  </tfoot>
-</table>
+</div>
+{% else %}
+<div class="alert alert-info mb-0">
+  No hay movimientos de venta en el rango seleccionado.
+</div>
+{% endif %}
 
 {% endblock %}

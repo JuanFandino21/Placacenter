@@ -184,7 +184,10 @@ def ventas_view(request):
         .order_by("nombre")
     )
     if q:
-        base_qs = base_qs.filter(Q(nombre_icontains=q) | Q(sku_icontains=q))
+        base_qs = base_qs.filter(
+            Q(nombre__icontains=q) |
+            Q(sku__icontains=q)
+        )
 
     grupos_dict = {}
     for p in base_qs:
@@ -285,11 +288,15 @@ class ProveedorUpdateView(LoginRequiredMixin, UpdateView):
 class ProductoListView(LoginRequiredMixin, ListView):
     model = Producto
     template_name = "productos_list.html"
+
     def get_queryset(self):
         qs = super().get_queryset().select_related("categoria", "proveedor")
-        q = self.request.GET.get("q")
+        q = (self.request.GET.get("q") or "").strip()
         if q:
-            qs = qs.filter(Q(nombre_icontains=q) | Q(sku_icontains=q))
+            qs = qs.filter(
+                Q(nombre__icontains=q) |
+                Q(sku__icontains=q)
+            )
         categoria = self.request.GET.get("categoria")
         if categoria:
             qs = qs.filter(categoria_id=categoria)
