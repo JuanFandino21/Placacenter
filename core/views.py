@@ -12,6 +12,8 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
 from django.db.models import Q, F
+from collections import OrderedDict
+from datetime import datetime, date, timedelta
 from django.http import HttpResponseBadRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -339,17 +341,6 @@ def entrada_stock_view(request, producto_id):
 
     return render(request, "entrada_stock.html", {"form": form, "producto": producto})
 
-import csv
-import io
-from decimal import Decimal
-
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.db import transaction
-
-from .models import Categoria, Proveedor, Producto, MovimientoInventario
-
-
 @login_required
 def inventario_entradas_view(request):
     """
@@ -648,6 +639,118 @@ def cart_empty(request):
     return cart_partial(request)
 
 @login_required
+def reporte_ventas_view(request):
+
+    # Tipo de reporte diario semanal mensual anual
+    tipo = request.GET.get("tipo", "diario")
+    if tipo not in ("diario", "semanal", "mensual", "anual"):
+        tipo = "diario"
+
+    # Fechas desde / hasta 
+    desde_str = request.GET.get("desde") or ""
+    hasta_str = request.GET.get("hasta") or ""
+
+    desde = None
+    hasta = None
+
+    
+    try:
+        if desde_str:
+            desde = datetime.strptime(desde_str, "%Y-%m-%d").date()
+    except ValueError:
+        desde = None
+
+    try:
+        if hasta_str:
+            hasta = datetime.strptime(hasta_str, "%Y-%m-%d").date()
+    except ValueError:
+        hasta = None
+
+    
+    if not desde and not hasta:
+        hoy = date.today()
+        desde = hoy - timedelta(days=30)
+        hasta = hoy
+
+    movimientos = MovimientoInventario.objects.filter(
+        tipo="SALIDA",
+        motivo="VENTA",
+    ).select_related("producto").order_by("fecha")
+
+    if desde:
+        movimientos = movimientos.filter(fecha__date__gte=desde)
+    if hasta:
+        movimientos = movimientos.filter(fecha__date__lte=hasta)
+
+    grupos = OrderedDict()
+    total_cantidad = 0
+    total_venta = Decimal("0.00")
+    total_costo = Decimal("0.00")
+
+    for mov in movimientos:
+        f = mov.fecha
+
+        # Clave según el tipo de reporte
+        if tipo == "diario":
+            key = f.date().strftime("%Y-%m-%d")
+            etiqueta = f.date().strftime("%d/%m/%Y")
+        elif tipo == "semanal":
+            year, week, _ = f.isocalendar()
+            key = f"{year}-W{week:02d}"
+            etiqueta = f"Semana {week} - {year}"
+        elif tipo == "mensual":
+            key = f.strftime("%Y-%m")
+            etiqueta = f.strftime("%m/%Y")
+        else:  # anual
+            key = f.strftime("%Y")
+            etiqueta = key
+
+        if key not in grupos:
+            grupos[key] = {
+                "periodo": etiqueta,
+                "cantidad": 0,
+                "total_venta": Decimal("0.00"),
+                "total_costo": Decimal("0.00"),
+            }
+
+        g = grupos[key]
+        # Cantidad vendida
+        g["cantidad"] += mov.cantidad
+
+        # Costo de compra lo que ya se guarda MovimientoInventario
+        g["total_costo"] += mov.costo_unitario * mov.cantidad
+
+        # Valor de venta usamos el precio_venta actual del producto
+        g["total_venta"] += mov.producto.precio_venta * mov.cantidad
+
+    filas = []
+    for key, g in grupos.items():
+        utilidad = g["total_venta"] - g["total_costo"]
+        filas.append({
+            "periodo": g["periodo"],
+            "cantidad": g["cantidad"],
+            "total_venta": g["total_venta"],
+            "total_costo": g["total_costo"],
+            "utilidad": utilidad,
+        })
+        total_cantidad += g["cantidad"]
+        total_venta += g["total_venta"]
+        total_costo += g["total_costo"]
+
+    total_utilidad = total_venta - total_costo
+
+    return render(request, "core/reporte_ventas.html", {
+        "tipo": tipo,
+        "desde": desde_str,
+        "hasta": hasta_str,
+        "filas": filas,
+        "total_cantidad": total_cantidad,
+        "total_venta": total_venta,
+        "total_costo": total_costo,
+        "total_utilidad": total_utilidad,
+    })
+
+@login_required
 def ventas_confirmar(request):
     """
     Confirma la venta:
@@ -661,7 +764,7 @@ def ventas_confirmar(request):
         messages.warning(request, "El carrito está vacío.")
         return redirect("ventas")
 
-    # Preparar líneas y validar stock sin tocar DB
+    
     lineas = []
     insuficientes = []
     for pid, item in cart.items():
