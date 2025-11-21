@@ -19,8 +19,7 @@ media/
 *.sqlite3-journal
 
 # IDE / OS
-.vscode/
-.DS_Store
+.vscode/´
 Thumbs.db
 
 db.sqlite3

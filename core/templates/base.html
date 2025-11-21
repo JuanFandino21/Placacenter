@@ -45,6 +45,11 @@
       <a href="/inventario/" class="pc-link {% if request.path|slice:':11' == '/inventario' %}active{% endif %}">
         <i class="bi bi-arrow-down-square"></i> Entradas
       </a>
+      <div class="pc-section">Reportes</div>
+      <a href="/reportes/ventas/" class="pc-link {% if request.path|slice:':16' == '/reportes/ventas' %}active{% endif %}">
+        <i class="bi bi-graph-up"></i> Ventas
+      </a>
+
 
       {% if request.user.is_staff %}
         <div class="pc-section">Config</div>
